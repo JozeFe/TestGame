@@ -25,6 +25,7 @@ import java.util.Random;
 
 /**
  * Created by JozeFe on 10/26/16.
+ * @author Jozef Krcho
  */
 
 public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
@@ -55,13 +56,16 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
 
     public MainScreen() {
         this.calculateRealLogicParameters(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
         camera = new OrthographicCamera();
-        // Extend viewport have min, max width and height parameters defiend min and max logical screen units to show
-        // then he used black bars. This will allways show logical area 3:2 for any aspect ratio
+        /*
+            ExtendeViewport have min, max width and height parameters, this configuration
+            is set to be used on device with min aspect ratio 16:9 to 4:3 and
+            will always show center of screen with ratio 3:2 on any kind of device screen aspect ratio.
+            If device have more extream aspect ratio then black bars will be add.
+         */
         viewport = new ExtendViewport(LOGIC_WIDTH, LOGIC_HEIGHT, MAX_LOGIC_WIDTH, MAX_LOGIC_HEIGHT, camera);
         viewport.apply();
-        // center camera positon to mid-point of logical screen
+        // center camera positon to mid-point of logical screen ( center of 3:2 part of screen )
         camera.position.set(LOGIC_WIDTH /2, -LOGIC_HEIGHT /2,0);
 
         batch = new SpriteBatch();
@@ -235,16 +239,35 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
         ball.setVector(tmpX, tmpY);
     }
 
+    /**
+     * Transform screenX position, (it's calculate on concrete device from left side to right)
+     * to LogicalScreen X position units, (it's calculate from left to right)
+     * @param screenX real X position on screen (concrete pixel)
+     * @return logical X postion on screen (screen logic unit)
+     */
     public float getLogicX(int screenX) {
         return screenX / widthRatio - (realLogicWidth - LOGIC_WIDTH)/2;
     }
 
+    /**
+     * Transform screenY position, (it's calculate on concrete device from top to bottom)
+     * to LogicalScreen Y position units, (it's calculate from bottom to top)
+     * @param screenY real Y position on screen (concrete pixel)
+     * @return logical Y postion on screen (screen logic unit)
+     */
     public float getLogicY(int screenY){
         return ((float) Gdx.graphics.getHeight() - screenY) / heightRatio - (realLogicHeight - LOGIC_HEIGHT) / 2;
     }
 
+    /**
+     * Calculate realLogical values that depends on device screen aspect ratio
+     * if device aspect ratio is bigger than 3:2, e.g. 4:3 realLogicHeight will be bigger than LogicHeight
+     * if device aspect ratio is smaller than 3:2, e.g 16:9 realLogicWidth will be bigger than LogicWidth.
+     * @param width real device widht
+     * @param height real device height
+     */
     private void calculateRealLogicParameters(float width, float height) {
-        //if device screen aspect ratio is smaller than 3:2, calculate realLogicHeight the widtht will be same
+        //if device screen aspect ratio is smaller than 3:2, calculate realLogicHeight the width will be same
         if ((width/height) < (LOGIC_WIDTH/LOGIC_HEIGHT)) {
             realLogicHeight = (LOGIC_WIDTH * height) / width;
             realLogicWidth = LOGIC_WIDTH;

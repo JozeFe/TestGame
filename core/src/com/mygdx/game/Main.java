@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 /**
  * Created by JozeFe on 10/26/16.
+ * @author Jozef Krcho
  */
 
 public class Main extends Game {
