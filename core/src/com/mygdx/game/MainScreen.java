@@ -12,7 +12,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygdx.game.entities.Ball;
 import com.mygdx.game.entities.Fruit;
@@ -31,26 +30,29 @@ import java.util.Random;
 public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
 
     // Logic screen units in aspect ratio 3:2 used in all devices
-    public static final float LOGIC_WIDTH = 480;
-    public static final float LOGIC_HEIGHT = LOGIC_WIDTH *2/3;
+    private static final float LOGIC_WIDTH = 480;
+    private static final float LOGIC_HEIGHT = LOGIC_WIDTH *2/3;
     // max logic widht units is calculate for aspect ratio 16:9
-    public static final float MAX_LOGIC_WIDTH = LOGIC_HEIGHT*16/9;
+    private static final float MAX_LOGIC_WIDTH = LOGIC_HEIGHT*16/9;
     // max logic height units is calculate for aspect ratio 4:3
-    public static final float MAX_LOGIC_HEIGHT = LOGIC_WIDTH*3/4;
+    private static final float MAX_LOGIC_HEIGHT = LOGIC_WIDTH*3/4;
     // Real logic game width and height for specific screen resolution
-    public static float realLogicWidth;
-    public static float realLogicHeight;
+    private static float realLogicWidth;
+    private static float realLogicHeight;
     private float widthRatio;
     private float heightRatio;
 
     private final OrthographicCamera camera;
+    private final Viewport viewport;
     private SpriteBatch batch;
-    private Viewport viewport;
     private ShapeRenderer shapeRenderer;
+
+    private FingerKnife game;
+    private Sprite background;
 
     private final Ball ball;
     private boolean dragging;
-    private Sprite sprite;
+
     private Gash gash;
     private List<Fruit> fruits;
 
@@ -67,22 +69,27 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
         viewport.apply();
         // center camera positon to mid-point of logical screen ( center of 3:2 part of screen )
         camera.position.set(LOGIC_WIDTH /2, -LOGIC_HEIGHT /2,0);
-
         batch = new SpriteBatch();
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer = new ShapeRenderer();
         shapeRenderer.setProjectionMatrix(camera.combined);
 
-        sprite = new Sprite(new Texture(Gdx.files.internal("grid.jpg")));
-        //sprite.setPosition(-45, -20);
-        //sprite.setSize(570,360);
-        sprite.setPosition((LOGIC_WIDTH-MAX_LOGIC_WIDTH)/2, (LOGIC_HEIGHT-MAX_LOGIC_HEIGHT)/2);
-        sprite.setSize(MAX_LOGIC_WIDTH,MAX_LOGIC_HEIGHT);
+        // background set up
+        background = new Sprite(new Texture(Gdx.files.internal("grid.jpg")));
+        // TODO refactor this comment
+        // set Position to bottom left corner
+        background.setPosition((LOGIC_WIDTH-MAX_LOGIC_WIDTH)/2, (LOGIC_HEIGHT-MAX_LOGIC_HEIGHT)/2);
+        // set size to maximum logical visible size (same for every device)
+        background.setSize(MAX_LOGIC_WIDTH,MAX_LOGIC_HEIGHT);
+
+        Gdx.input.setInputProcessor(this);
+        game = new FingerKnife();
+
         ball = new Ball();
         gash = new Gash();
         dragging = false;
         fruits = new ArrayList<Fruit>();
-        Gdx.input.setInputProcessor(this);
+
     }
 
     @Override
@@ -112,7 +119,7 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        sprite.draw(batch);
+        background.draw(batch);
         batch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
@@ -143,7 +150,6 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
     public void resize(int width, int height) {
         viewport.update(width, height);
         camera.position.set(LOGIC_WIDTH /2, LOGIC_HEIGHT /2,0);
-
         this.calculateRealLogicParameters(width, height);
     }
 
@@ -166,7 +172,7 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
     public void dispose() {
         batch.dispose();
         shapeRenderer.dispose();
-        sprite.getTexture().dispose();
+        background.getTexture().dispose();
 
     }
 
@@ -200,10 +206,10 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         if (button != Input.Buttons.LEFT || pointer > 0) return false;
-        setBall(screenX,screenY);
-        dragging = true;
+        ball.setVector(getLogicX(screenX), getLogicY(screenY));
         gash.reset();
         gash.add(getLogicX(screenX), getLogicY(screenY));
+        dragging = true;
         return false;
     }
 
@@ -217,7 +223,7 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
         if (!dragging) return false;
-        setBall(screenX,screenY);
+        ball.setVector(getLogicX(screenX), getLogicY(screenY));
         gash.add(getLogicX(screenX), getLogicY(screenY));
         return false;
     }
@@ -230,13 +236,6 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
     @Override
     public boolean scrolled(int amount) {
         return false;
-    }
-
-    public void setBall(int screenX, int screenY){
-        float tmpX, tmpY;
-        tmpX = screenX / widthRatio - (realLogicWidth - LOGIC_WIDTH)/2;
-        tmpY = ((float) Gdx.graphics.getHeight() - screenY) / heightRatio - (realLogicHeight - LOGIC_HEIGHT) / 2;
-        ball.setVector(tmpX, tmpY);
     }
 
     /**
