@@ -173,6 +173,7 @@ public class MainScreen implements com.badlogic.gdx.Screen, InputProcessor {
         batch.dispose();
         shapeRenderer.dispose();
         background.getTexture().dispose();
+        game.dispose();
 
     }
 
